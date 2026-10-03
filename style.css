@@ -610,6 +610,10 @@ select {
   color: #ff3b45;
 }
 
+.E {
+  color: white;
+}
+
 .payment-label {
   margin: 12px 0 6px;
   color: #666;
