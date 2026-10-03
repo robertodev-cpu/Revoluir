@@ -13,8 +13,8 @@
   --muted-2: #777;
   --line: #292929;
   --line-soft: #181818;
-  --red: #920000d0;
-  --red-bright: #a70008;
+  --red: #ff0000d0;
+  --red-bright: #ff0310;
   --max: 1180px;
   --radius: 7px;
 }
@@ -517,7 +517,7 @@ select {
   display: block;
   min-height: 17px;
   margin-top: 5px;
-  color: #ff6670;
+  color: #a0000b;
   font-size: 11px;
 }
 
