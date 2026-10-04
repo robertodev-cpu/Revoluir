@@ -1,62 +1,56 @@
-# REVOLUIR — Site de Comprometimento
+# REVOLUIR — Site editado
 
-Estrutura:
+Alterações desta versão:
 
-- index.html
-- style.css
-- script.js
+1. Os métodos de pagamento aparecem inicialmente apenas como opções. Os números PayPay, Express e o IBAN só aparecem depois de clicar no método escolhido.
+2. Ao escolher PayPay, Express ou Transferência bancária, o método fica automaticamente selecionado no bloco de confirmação.
+3. O bloco de confirmação de pagamento só aparece depois de escolher um método.
+4. A escolha da rede social agora vem antes do campo do utilizador. Só depois de selecionar a rede aparece o campo específico para o nome de utilizador real.
+5. O placeholder `Ex.:` foi uniformizado em cinzento, sem qualquer letra vermelha isolada.
+6. O visual foi refinado para ficar mais consistente com preto/branco/vermelho REVOLUIR, com menos elementos pesados e melhor hierarquia no telemóvel.
+7. O formulário continua a abrir o WhatsApp com os dados preenchidos.
+8. A confirmação de pagamento abre o WhatsApp com o nome verdadeiro usado no pagamento e o método escolhido.
 
-## Antes de publicar
+## Configuração
 
-Abra `script.js` e altere apenas o bloco:
+Editar no topo de `script.js`:
 
-```js
-const REVOLUIR_CONFIG = {
-  whatsappNumber: "244000000000",
+- `whatsappNumber`
+- `payment.paypay`
+- `payment.express`
+- `payment.iban`
+- `payment.accountName`
 
-  payment: {
-    paypay: "INSERE O NÚMERO PAYPAY",
-    express: "INSERE O NÚMERO EXPRESS",
-    iban: "AO00 0000 0000 0000 0000 0000 0",
-    accountName: "REVOLUIR"
-  },
+Os dados PayPay, Express e IBAN presentes nesta versão foram os dados visíveis na referência fornecida. Confirma-os antes da publicação.
 
-  price: "2.000 Kz"
-};
-```
+## Refinamento visual (v3)
 
-### WhatsApp
+Estrutura, textos e funcionalidades mantidos. Alterações:
 
-Use o número no formato internacional, sem `+`, espaços ou traços.
+- **Cores:** preto/branco com o vermelho REVOLUIR só em títulos (barra sob cada título e palavra em destaque no hero), preço, números de pagamento, botões e elementos de interesse.
+- **Formulários e seleções:** campos, selects, listas de escolha e áreas de pagamento sempre em tons escuros (inclui lista nativa do select e preenchimento automático do navegador).
+- **Geometria:** campos, cartões, opções (formato pílula) e botões com cantos muito mais arredondados.
+- **Botões:** brilho que segue o dedo/rato, leve deslocamento magnético e efeito ao premir. Respeita `prefers-reduced-motion`.
+- **Logo oficial:** punho REVOLUIR no cabeçalho, rodapé, hero (com inclinação suave) e favicon. Ficheiros de imagem na mesma pasta do `index.html`.
+- **Pagamentos:** logos oficiais PayPay e Express. Os dados continuam ocultos até clicar no método. A Transferência bancária usa a logo IBAN fornecida (mosaico claro, porque a marca é azul).
+- **Redes sociais:** mantidas fechadas; o campo de utilizador só aparece depois de escolher a rede.
+- **Livros (`#livros`):** secção preparada para vários livros. Para adicionar um, copia o bloco `<article class="book-card">` dentro de `#bookGrid` e troca capa, título, descrição e link. O botão **Ver mais** fica oculto enquanto houver apenas 1 livro (`data-visible="1"` em `#bookGrid`) e aparece sozinho quando houver mais.
+  - A capa atual é desenhada em CSS segundo a capa oficial. Para usar a imagem real, substitui o `<div class="book-cover">…</div>` por `<img class="book-cover" src="capa-revoluir.jpg" alt="Capa do livro REVOLUIR">`.
+  - O botão **Comprar** ainda tem `href="#"`: troca pelo link de compra.
 
-Exemplo:
+Ficheiros novos: `refinamentos.js` (interações dos botões, logo e “Ver mais”) e as imagens (logos).
 
-`2449XXXXXXXX`
+## Código organizado
 
-### Fluxo
+`index.html`, `style.css`, `refinamentos.js` e `script.js` estão organizados, uma instrução por linha, com indentação e comentários de secção no CSS.
+A organização não altera o resultado: a página renderiza pixel a pixel igual e as 213 regras CSS são equivalentes.
 
-1. Visitante preenche o formulário.
-2. O site valida os campos.
-3. O site abre o WhatsApp com uma mensagem pronta contendo os dados.
-4. Visitante volta ao site e realiza o pagamento.
-5. Na área de confirmação, informa o nome verdadeiro utilizado no pagamento e o método.
-6. O site abre novamente o WhatsApp com uma mensagem pronta.
-7. O visitante pode anexar o comprovativo diretamente na conversa, se solicitado.
-8. A REVOLUIR confere manualmente o nome/pagamento e confirma o registro.
+## script.js (novo)
 
-## Importante
+O `script.js` original não foi enviado, por isso este foi escrito de novo a partir do HTML e das regras descritas acima. Se tiveres o original, podes usá-lo no lugar deste.
 
-O HTML/JavaScript não confirma automaticamente se um pagamento aconteceu.
-A confirmação real deve ser feita pela REVOLUIR através da conferência do pagamento.
+- **Obrigatório:** definir `whatsappNumber` no topo (só dígitos, com indicativo, ex.: `244900000000`). Enquanto estiver vazio, os botões de WhatsApp mostram um aviso.
+- Os dados PayPay, Express, IBAN e nome da conta também se editam no topo, em `payment`.
+- Faz: animação de entrada ao rolar, listas recolhíveis (rede social e área), campo do utilizador só depois de escolher a rede, campo “Qual é a tua área?” só com “Outro”, validação do formulário, abertura do WhatsApp com os dados, métodos de pagamento (um aberto de cada vez, com botão Copiar), confirmação que só aparece depois de escolher o método e abre o WhatsApp.
 
-Também não há upload automático do comprovativo para um servidor neste esboço.
-O comprovativo é enviado diretamente pelo WhatsApp quando o membro abre a conversa.
-
-## Privacidade
-
-Este front-end guarda temporariamente os dados do formulário no `localStorage`
-do navegador para manter o contexto entre o registro e a confirmação.
-
-Se o projeto for colocado em produção com dados pessoais, recomenda-se criar
-uma política de privacidade e, se necessário, trocar o armazenamento local
-por um backend seguro.
+Tudo está numa única pasta, sem subpastas.

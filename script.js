@@ -1,323 +1,337 @@
-/* =========================================================
-   REVOLUIR — JAVASCRIPT
-   =========================================================
+/* ==========================================================================
+   REVOLUIR — script.js
+   Edita apenas a secção CONFIGURAÇÃO.
+   ========================================================================== */
 
-   IMPORTANTE:
-   1. Coloca o teu número do WhatsApp em WHATSAPP_NUMBER.
-   2. Coloca os dados reais de pagamento.
-   3. O WhatsApp usa o formato internacional sem +, espaços ou traços.
-      Exemplo: 2449XXXXXXXX.
-*/
+/* ---------- CONFIGURAÇÃO ------------------------------------------------- */
 
-const REVOLUIR_CONFIG = {
-  whatsappNumber: "929219490",
+// Número de WhatsApp da REVOLUIR, só dígitos e com indicativo. Ex.: "244900000000"
+const whatsappNumber = "929219490";
 
-  payment: {
-    paypay: "958205630",
-    express: "936352342",
-    iban: "AO06.0040.0000.4571.6812.1015.8",
-    accountName: "REVOLUIR"
-  },
-
-  price: "2.000 Kz"
+const payment = {
+  paypay: "958205630",
+  express: "936352342",
+  iban: "AO06.0040.0000.4571.6812.1015.8",
+  accountName: "REVOLUIR"
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-  setupPaymentData();
-  setupWhatsAppLinks();
-  setupAreaOtherField();
-  setupRegistrationForm();
-  setupPaymentConfirmation();
-  setupCopyButtons();
-  setupScrollReveal();
+/* ---------- Utilitários -------------------------------------------------- */
+
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+function whatsappUrl(text) {
+  const number = String(whatsappNumber).replace(/\D/g, "");
+  if (!number) return null;
+  return "https://wa.me/" + number + (text ? "?text=" + encodeURIComponent(text) : "");
+}
+
+function openWhatsapp(text) {
+  const url = whatsappUrl(text);
+  if (!url) {
+    alert("Número de WhatsApp ainda não configurado. Define whatsappNumber no topo do script.js.");
+    return false;
+  }
+  const win = window.open(url, "_blank");
+  if (win) win.opener = null;
+  else window.location.href = url;
+  return true;
+}
+
+function showMessage(el, html) {
+  if (!el) return;
+  el.innerHTML = html;
+  el.style.display = "block";
+}
+
+/* ---------- Dados de pagamento vindos da configuração -------------------- */
+
+$$("[data-payment]").forEach((el) => {
+  const value = payment[el.dataset.payment];
+  if (value) el.textContent = value;
 });
 
-function setupPaymentData() {
-  document.querySelectorAll("[data-payment]").forEach((element) => {
-    const key = element.dataset.payment;
-    if (REVOLUIR_CONFIG.payment[key] !== undefined) {
-      element.textContent = REVOLUIR_CONFIG.payment[key];
-    }
-  });
-}
+/* ---------- Ligações de WhatsApp ----------------------------------------- */
 
-function whatsappUrl(message = "") {
-  const number = String(REVOLUIR_CONFIG.whatsappNumber)
-    .replace(/\D/g, "");
+$$("[data-whatsapp-link]").forEach((link) => {
+  const url = whatsappUrl("Olá, REVOLUIR! Quero fazer parte da REVOLUIR.");
+  if (url) link.href = url;
+  else {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      openWhatsapp("");
+    });
+  }
+});
 
-  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
-}
+/* ---------- Animação de entrada (scroll) --------------------------------- */
 
-function setupWhatsAppLinks() {
-  const defaultMessage =
-    "Olá, REVOLUIR. Quero saber mais sobre o processo de entrada na REVOLUIR.";
-
-  document.querySelectorAll("[data-whatsapp-link]").forEach((link) => {
-    link.href = whatsappUrl(defaultMessage);
-  });
-}
-
-function getRadioValue(name) {
-  const selected = document.querySelector(`input[name="${name}"]:checked`);
-  return selected ? selected.value : "";
-}
-
-function setupAreaOtherField() {
-  const areaInputs = document.querySelectorAll('input[name="area"]');
-  const otherWrap = document.getElementById("otherAreaWrap");
-
-  areaInputs.forEach((input) => {
-    input.addEventListener("change", () => {
-      const isOther = input.value === "Outro" && input.checked;
-      otherWrap.classList.toggle("hidden", !isOther);
-
-      if (!isOther) {
-        document.getElementById("otherArea").value = "";
+(function reveal() {
+  const items = $$(".reveal");
+  if (!("IntersectionObserver" in window)) {
+    items.forEach((el) => el.classList.add("visible"));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+        observer.unobserve(entry.target);
       }
     });
-  });
+  }, { threshold: 0.12 });
+  items.forEach((el) => observer.observe(el));
+})();
+
+/* ---------- Formulário de registro --------------------------------------- */
+
+const form = $("#memberForm");
+
+const socialHints = {
+  Instagram: { placeholder: "Ex.: @joaomanuel", hint: "Indica o teu @ do Instagram." },
+  TikTok: { placeholder: "Ex.: @joaomanuel", hint: "Indica o teu @ do TikTok." },
+  Facebook: { placeholder: "Ex.: João Manuel Silva", hint: "Indica o nome do teu perfil no Facebook." },
+  YouTube: { placeholder: "Ex.: @joaomanuel", hint: "Indica o nome ou @ do teu canal do YouTube." },
+  LinkedIn: { placeholder: "Ex.: joao-manuel-silva", hint: "Indica o teu nome de utilizador do LinkedIn." },
+  X: { placeholder: "Ex.: @joaomanuel", hint: "Indica o teu @ do X." },
+  Outra: { placeholder: "Ex.: nome da rede e o teu utilizador", hint: "Indica a rede e o nome de utilizador real." }
+};
+
+function fieldOf(name) {
+  return form.elements[name];
 }
 
-function setupRegistrationForm() {
-  const form = document.getElementById("memberForm");
+function errorBox(name, root = document) {
+  return $('[data-error-for="' + name + '"]', root);
+}
 
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
+function setError(name, message) {
+  const box = errorBox(name);
+  if (box) box.textContent = message;
+}
 
-    clearErrors();
+function clearError(name) {
+  setError(name, "");
+}
 
-    const data = collectMemberData();
-    const errors = validateMemberData(data);
+function closeToggle(fieldset) {
+  const toggle = $(".field-toggle", fieldset);
+  if (toggle) toggle.setAttribute("aria-expanded", "false");
+}
 
-    if (Object.keys(errors).length > 0) {
-      showErrors(errors);
-      return;
+// Abrir / fechar as listas de escolha (rede social, área)
+$$(".field-toggle", form).forEach((toggle) => {
+  toggle.addEventListener("click", () => {
+    const open = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", String(!open));
+  });
+});
+
+// Rede social: só depois de escolher aparece o campo do utilizador
+form.addEventListener("change", (event) => {
+  const input = event.target;
+  if (!input || input.type !== "radio") return;
+
+  if (input.name === "socialNetwork") {
+    const wrap = $("#socialUsernameWrap");
+    const username = $("#socialUsername");
+    const info = socialHints[input.value] || socialHints.Outra;
+    $("#socialSelected").textContent = input.value;
+    $("#socialUsernameLabel").innerHTML = "Nome de utilizador no " + input.value + " <span>*</span>";
+    $("#socialUsernameHint").textContent = info.hint;
+    username.placeholder = info.placeholder;
+    wrap.classList.remove("hidden");
+    clearError("socialNetwork");
+    closeToggle(input.closest("fieldset"));
+    username.focus({ preventScroll: true });
+  }
+
+  if (input.name === "area") {
+    const otherWrap = $("#otherAreaWrap");
+    const other = input.value === "Outro";
+    $("#areaSelected").textContent = input.value;
+    otherWrap.classList.toggle("hidden", !other);
+    if (!other) {
+      $("#otherArea").value = "";
+      clearError("otherArea");
     }
-
-    const message = buildRegistrationMessage(data);
-
-    // Guarda os dados no navegador para poder reutilizá-los
-    // na confirmação do pagamento.
-    localStorage.setItem("revoluirMember", JSON.stringify(data));
-
-    // Abre o WhatsApp com os dados já preenchidos.
-    window.open(whatsappUrl(message), "_blank", "noopener,noreferrer");
-
-    const success = document.getElementById("formSuccess");
-    success.style.display = "block";
-    success.textContent =
-      "Os teus dados foram preparados para o WhatsApp. A janela do WhatsApp foi aberta. Depois, continua para a área de pagamento.";
-
-    // Desce para pagamento.
-    setTimeout(() => {
-      document.getElementById("pagamento").scrollIntoView({
-        behavior: "smooth"
-      });
-    }, 350);
-  });
-}
-
-function collectMemberData() {
-  return {
-    fullName: document.getElementById("fullName").value.trim(),
-    socialName: document.getElementById("socialName").value.trim(),
-    socialNetwork: getRadioValue("socialNetwork"),
-    area: getRadioValue("area"),
-    otherArea: document.getElementById("otherArea").value.trim(),
-    businessModel: document.getElementById("businessModel").value,
-    businessArea: document.getElementById("businessArea").value.trim(),
-    businessDescription:
-      document.getElementById("businessDescription").value.trim()
-  };
-}
-
-function validateMemberData(data) {
-  const errors = {};
-
-  if (!data.fullName) {
-    errors.fullName = "Indica o teu nome completo.";
+    clearError("area");
+    closeToggle(input.closest("fieldset"));
+    if (other) $("#otherArea").focus({ preventScroll: true });
   }
+});
 
-  if (!data.socialName) {
-    errors.socialName = "Indica o nome da tua rede social.";
-  }
+// Limpar erros enquanto a pessoa corrige
+form.addEventListener("input", (event) => {
+  const name = event.target && event.target.name;
+  if (name) clearError(name);
+});
 
-  if (!data.socialNetwork) {
-    errors.socialNetwork = "Seleciona uma rede social.";
-  }
+function validateForm() {
+  const errors = [];
+  const text = (name) => (fieldOf(name).value || "").trim();
 
-  if (!data.area) {
-    errors.area = "Seleciona uma área.";
-  }
+  if (!text("fullName")) errors.push(["fullName", "Escreve o teu nome completo."]);
+  if (!fieldOf("socialNetwork").value) errors.push(["socialNetwork", "Escolhe a rede social que utilizas."]);
+  else if (!text("socialUsername")) errors.push(["socialUsername", "Indica o teu nome de utilizador."]);
+  if (!fieldOf("area").value) errors.push(["area", "Escolhe a tua área de trabalho."]);
+  else if (fieldOf("area").value === "Outro" && !text("otherArea")) errors.push(["otherArea", "Indica qual é a tua área."]);
+  if (!text("businessModel")) errors.push(["businessModel", "Escolhe o teu modelo atual."]);
+  if (!fieldOf("consent").checked) errors.push(["consent", "Confirma para poderes continuar."]);
 
-  if (data.area === "Outro" && !data.otherArea) {
-    errors.area = "Indica qual é a tua área.";
-  }
-
-  if (!data.businessModel) {
-    errors.businessModel = "Seleciona o teu modelo atual.";
-  }
-
-  if (!document.getElementById("consent").checked) {
-    errors.consent = "É necessário aceitar o uso dos dados para o registro.";
-  }
-
+  ["fullName", "socialNetwork", "socialUsername", "area", "otherArea", "businessModel", "consent"].forEach(clearError);
+  errors.forEach(([name, message]) => setError(name, message));
   return errors;
 }
 
-function showErrors(errors) {
-  Object.entries(errors).forEach(([field, message]) => {
-    const target = document.querySelector(`[data-error-for="${field}"]`);
-    if (target) target.textContent = message;
-  });
-
-  const firstError = document.querySelector(".error:not(:empty)");
-  if (firstError) {
-    firstError.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
+function focusError(name) {
+  let target = fieldOf(name);
+  if (target instanceof RadioNodeList) target = $(".field-toggle", target[0].closest("fieldset"));
+  if (target && target.focus) {
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.focus({ preventScroll: true });
   }
 }
 
-function clearErrors() {
-  document.querySelectorAll(".error").forEach((element) => {
-    element.textContent = "";
-  });
+function registrationMessage() {
+  const v = (name) => (fieldOf(name).value || "").trim();
+  const area = v("area") === "Outro" ? "Outro — " + v("otherArea") : v("area");
+  const lines = [
+    "*NOVO REGISTRO — REVOLUIR*",
+    "",
+    "Nome: " + v("fullName"),
+    "Rede social: " + v("socialNetwork"),
+    "Utilizador: " + v("socialUsername"),
+    "Área em que trabalha: " + area,
+    "Modelo atual: " + v("businessModel")
+  ];
+  if (v("businessArea")) lines.push("Área do negócio: " + v("businessArea"));
+  if (v("businessDescription")) lines.push("Sobre o negócio: " + v("businessDescription"));
+  return lines.join("\n");
 }
 
-function buildRegistrationMessage(data) {
-  const actualArea =
-    data.area === "Outro" ? data.otherArea : data.area;
-
-  return `NOVO REGISTRO — REVOLUIR
-
-Nome completo: ${data.fullName}
-Rede social: ${data.socialNetwork}
-Perfil: ${data.socialName}
-
-Área: ${actualArea}
-Modelo atual: ${data.businessModel}
-Área do negócio: ${data.businessArea || "Não informado"}
-
-Negócio:
-${data.businessDescription || "Não informado"}
-
-A pessoa preencheu o formulário no site e pretende avançar com a taxa de comprometimento de ${REVOLUIR_CONFIG.price}.`;
-}
-
-function setupPaymentConfirmation() {
-  const button = document.getElementById("whatsappPaymentBtn");
-
-  button.addEventListener("click", () => {
-    const paymentName = document.getElementById("paymentName").value.trim();
-    const paymentMethod = document.getElementById("paymentMethod").value;
-    const member = JSON.parse(localStorage.getItem("revoluirMember") || "null");
-
-    if (!paymentName) {
-      showPaymentStatus("Escreve o nome verdadeiro utilizado no pagamento.", true);
-      return;
-    }
-
-    if (!paymentMethod) {
-      showPaymentStatus("Seleciona o método de pagamento.", true);
-      return;
-    }
-
-    const memberName = member?.fullName || "Não informado";
-    const social = member
-      ? `${member.socialNetwork} — ${member.socialName}`
-      : "Não informado";
-
-    const message =
-`CONFIRMAÇÃO DE PAGAMENTO — REVOLUIR
-
-Olá, REVOLUIR. Já realizei o pagamento da taxa de comprometimento.
-
-Nome verdadeiro utilizado no pagamento:
-${paymentName}
-
-Método:
-${paymentMethod}
-
-Valor:
-${REVOLUIR_CONFIG.price}
-
-Nome usado no registro do site:
-${memberName}
-
-Rede social:
-${social}
-
-Peço a confirmação do meu registro.
-
-Se necessário, enviarei o comprovativo nesta conversa.`;
-
-    window.open(whatsappUrl(message), "_blank", "noopener,noreferrer");
-
-    showPaymentStatus(
-      "O WhatsApp foi aberto com a mensagem de confirmação. Se for necessário, anexa o comprovativo diretamente na conversa."
-    );
-  });
-}
-
-function showPaymentStatus(message, isError = false) {
-  const element = document.getElementById("paymentStatus");
-
-  element.style.display = "block";
-  element.textContent = message;
-
-  if (isError) {
-    element.style.color = "#ff727a";
-    element.style.background = "rgba(229,9,20,.06)";
-    element.style.borderColor = "rgba(229,9,20,.3)";
-  } else {
-    element.style.color = "#a5e5a5";
-    element.style.background = "rgba(50,130,50,.08)";
-    element.style.borderColor = "rgba(50,130,50,.3)";
-  }
-}
-
-function setupCopyButtons() {
-  document.querySelectorAll("[data-copy]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const key = button.dataset.copy;
-      const value = REVOLUIR_CONFIG.payment[key];
-
-      try {
-        await navigator.clipboard.writeText(value);
-        const original = button.textContent;
-        button.textContent = "Copiado ✓";
-
-        setTimeout(() => {
-          button.textContent = original;
-        }, 1500);
-      } catch {
-        alert(`Copia manualmente: ${value}`);
-      }
-    });
-  });
-}
-
-function setupScrollReveal() {
-  const elements = document.querySelectorAll(".reveal");
-
-  if (!("IntersectionObserver" in window)) {
-    elements.forEach((element) => element.classList.add("visible"));
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const errors = validateForm();
+  const success = $("#formSuccess");
+  if (errors.length) {
+    success.style.display = "none";
+    focusError(errors[0][0]);
     return;
   }
+  if (openWhatsapp(registrationMessage())) {
+    showMessage(success, 'Dados prontos! O WhatsApp foi aberto com a tua mensagem. Agora avança para o <a href="#pagamento"><strong>pagamento</strong></a>.');
+  }
+});
 
-  const observer = new IntersectionObserver(
-    (entries, obs) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
-          obs.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.12 }
-  );
+/* ---------- Métodos de pagamento ----------------------------------------- */
 
-  elements.forEach((element) => observer.observe(element));
+const methodButtons = $$(".payment-method");
+const confirmation = $("#confirmacao");
+const paymentMethodSelect = $("#paymentMethod");
+
+function detailsOf(method) {
+  return $('.payment-details[data-details="' + method + '"]');
 }
+
+methodButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const method = button.dataset.method;
+    const panel = detailsOf(method);
+    const willOpen = panel.hidden;
+
+    // Só um método aberto de cada vez
+    methodButtons.forEach((other) => {
+      other.setAttribute("aria-expanded", "false");
+      detailsOf(other.dataset.method).hidden = true;
+    });
+
+    if (willOpen) {
+      panel.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+    }
+
+    // Escolher um método seleciona-o e mostra a confirmação
+    paymentMethodSelect.value = method;
+    confirmation.classList.remove("hidden");
+    confirmation.classList.add("visible");
+  });
+});
+
+// Copiar número / IBAN
+$$("[data-copy]").forEach((button) => {
+  const original = button.textContent;
+  button.addEventListener("click", async () => {
+    const source = $('[data-payment="' + button.dataset.copy + '"]');
+    const value = source ? source.textContent.trim() : "";
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (error) {
+      const area = document.createElement("textarea");
+      area.value = value;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    button.textContent = "Copiado ✓";
+    setTimeout(() => { button.textContent = original; }, 1800);
+  });
+});
+
+/* ---------- Confirmação de pagamento ------------------------------------- */
+
+(function paymentConfirmation() {
+  const nameInput = $("#paymentName");
+  const status = $("#paymentStatus");
+  const button = $("#whatsappPaymentBtn");
+
+  function fieldError(input, message) {
+    let box = input.parentElement.querySelector(".error");
+    if (!box) {
+      box = document.createElement("small");
+      box.className = "error";
+      input.parentElement.appendChild(box);
+    }
+    box.textContent = message;
+  }
+
+  [nameInput, paymentMethodSelect].forEach((input) => {
+    input.addEventListener("input", () => fieldError(input, ""));
+    input.addEventListener("change", () => fieldError(input, ""));
+  });
+
+  button.addEventListener("click", () => {
+    const name = nameInput.value.trim();
+    const method = paymentMethodSelect.value;
+    const value = $("#paymentValue").value;
+    let invalid = null;
+
+    fieldError(nameInput, "");
+    fieldError(paymentMethodSelect, "");
+    if (!name) { fieldError(nameInput, "Escreve o nome verdadeiro usado no pagamento."); invalid = nameInput; }
+    if (!method) { fieldError(paymentMethodSelect, "Escolhe o método que utilizaste."); invalid = invalid || paymentMethodSelect; }
+    if (invalid) {
+      status.style.display = "none";
+      invalid.focus();
+      return;
+    }
+
+    const registered = (fieldOf("fullName").value || "").trim();
+    const lines = [
+      "*CONFIRMAÇÃO DE PAGAMENTO — REVOLUIR*",
+      "",
+      "Nome usado no pagamento: " + name,
+      "Método: " + method,
+      "Valor: " + value
+    ];
+    if (registered && registered !== name) lines.push("Nome no registro: " + registered);
+    lines.push("", "Posso enviar o comprovativo por aqui, se for necessário.");
+
+    if (openWhatsapp(lines.join("\n"))) {
+      showMessage(status, "WhatsApp aberto. Envia a mensagem para confirmarmos o teu registro.");
+    }
+  });
+})();
